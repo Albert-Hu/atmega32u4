@@ -11,7 +11,7 @@
 
 # Run "make help" for target help.
 
-TARGET       = bootloader
+TARGET       = $(BOOTLOADER_TARGET)
 SRC          = BootloaderDFU.c Descriptors.c BootloaderAPI.c BootloaderAPITable.S $(LUFA_SRC_USB)
 LUFA_PATH    = ../lufa/LUFA
 CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -IConfig/ -DBOOT_START_ADDR=$(BOOT_START_OFFSET)
