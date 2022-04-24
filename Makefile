@@ -25,6 +25,9 @@ export OPTIMIZATION
 release: app bootloader
 	python pack.py --app app/$(APP_TARGET).bin --bootloader bootloader/$(BOOTLOADER_TARGET).bin --output $(TARGET)
 
+upload: release
+	avrdude -c usbasp -p m32u4 -U flash:w:$(TARGET):r
+
 .PHONY: app
 app:
 	make -C app
