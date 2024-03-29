@@ -13,5 +13,7 @@ MCU="atmega32u4"
 # Firmware file
 FIRMWARE="$1"
 
-# Upload firmware using avrdude
-avrdude -c $PROGRAMMER -p $MCU -U flash:w:$FIRMWARE:i
+# Upload firmware using dfu-programmer
+dfu-programmer $MCU erase
+dfu-programmer $MCU flash $FIRMWARE
+dfu-programmer $MCU reset

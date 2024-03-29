@@ -222,6 +222,8 @@ void usb_init(void) {
   stdin = &usb_stdio_stream;
 }
 
+void usb_disable(void) { USB_Disable(); }
+
 void usb_task(void) {
   CDC_Device_USBTask(&cdc_interface);
   USB_USBTask();

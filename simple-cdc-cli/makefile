@@ -15,6 +15,9 @@ OBJDIR       = build/obj
 build: all
 	@mv $(filter-out $(TARGET).c,$(shell ls $(TARGET)*)) build
 
+upload: build
+	@avrdude -c usbasp -p atmega32u4 -U flash:w:build/$(TARGET).hex:i
+
 DMBS_LUFA_PATH ?= $(LUFA_PATH)/Build/LUFA
 include $(DMBS_LUFA_PATH)/lufa-sources.mk
 include $(DMBS_LUFA_PATH)/lufa-gcc.mk

@@ -48,6 +48,7 @@ uint16_t CALLBACK_USB_GetDescriptor(const uint16_t wValue,
     ATTR_WARN_UNUSED_RESULT ATTR_NON_NULL_PTR_ARG(3);
 
 void usb_init(void);
+void usb_disable(void);
 void usb_task(void);
 int16_t usb_read_byte(void);
 uint8_t usb_write_byte(uint8_t byte);

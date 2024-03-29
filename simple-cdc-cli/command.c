@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "command.h"
+#include "usb.h"
 #include "version.h"
 
 // declare the command functions
@@ -44,6 +45,12 @@ static void command_reboot(void *user_data, int argc, char *argv[]) {
 }
 
 static void command_bootloader(void *user_data, int argc, char *argv[]) {
+  usb_disable();
+
+  /* Relocate the interrupt vector table */
+  MCUCR = (1 << IVCE);
+  MCUCR = 0;
+
   // enter the bootloader
   ((void (*)(void))0x7000)();
 }
