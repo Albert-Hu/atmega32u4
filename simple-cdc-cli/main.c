@@ -34,7 +34,6 @@ int main(void) {
   for (;;) {
     if ((value = usb_read_byte()) != -1) {
       mcucli_push_char(&usb_cli, value);
-      // printf("Input: 0x%02x\r\n", value);
     }
     usb_task();
   }
