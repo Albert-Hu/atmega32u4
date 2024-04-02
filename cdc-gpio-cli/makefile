@@ -5,14 +5,18 @@ F_CPU        = 16000000
 F_USB        = $(F_CPU)
 OPTIMIZATION = s
 TARGET       = main
-SRC          = $(TARGET).c usb.c $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS)
+MCUCLI_SRC   = $(wildcard ../libs/mcucli/src/*.c)
+SRC          = $(wildcard *.c) $(MCUCLI_SRC) $(LUFA_SRC_USB) $(LUFA_SRC_USBCLASS)
 LUFA_PATH    = ../lufa/LUFA
-CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -Iconfig/
+CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -Iconfig/ -I../libs/mcucli/include
 LD_FLAGS     =
 OBJDIR       = build/obj
 
 build: all
 	@mv $(filter-out $(TARGET).c,$(shell ls $(TARGET)*)) build
+
+upload: build
+	@avrdude -c usbasp -p atmega32u4 -U flash:w:build/$(TARGET).hex:i
 
 DMBS_LUFA_PATH ?= $(LUFA_PATH)/Build/LUFA
 include $(DMBS_LUFA_PATH)/lufa-sources.mk

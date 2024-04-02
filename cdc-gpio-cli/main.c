@@ -5,16 +5,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "command.h"
 #include "usb.h"
 
+static int usb_putchar(char c) { return (int)usb_write_byte(c); }
+
 // initialize the hardware
-void init_hardware(void) {
+static void init_hardware(void) {
   // disable watchdog if enabled by bootloader/fuses
   MCUSR &= ~(1 << WDRF);
   wdt_disable();
-
-  // disable clock division
-  clock_prescale_set(clock_div_1);
 
   // init lufa usb CDC device
   usb_init();
@@ -22,17 +22,18 @@ void init_hardware(void) {
 
 // The entry point for the application code
 int main(void) {
-  char c;
+  uint16_t value;
+  mcucli_t usb_cli;
+
   init_hardware();
+
+  command_init(&usb_cli, usb_putchar);
 
   GlobalInterruptEnable();
 
   for (;;) {
-    c = getc(stdin);
-    // check if c is a visible character in the ASCII table
-    if (c >= 32 && c <= 126 || c == '\n' || c == '\r' || c == '\t') {
-      // echo the character back to the terminal
-      putc(c, stdout);
+    if ((value = usb_read_byte()) != -1) {
+      mcucli_push_char(&usb_cli, value);
     }
     usb_task();
   }

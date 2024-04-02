@@ -37,22 +37,22 @@
 #define _BOOTLOADER_H_
 
 /* Includes: */
-#include <avr/io.h>
-#include <avr/wdt.h>
 #include <avr/boot.h>
-#include <avr/pgmspace.h>
 #include <avr/eeprom.h>
-#include <avr/power.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
+#include <avr/io.h>
+#include <avr/pgmspace.h>
+#include <avr/power.h>
+#include <avr/wdt.h>
 #include <stdbool.h>
+#include <util/delay.h>
 
-#include "Descriptors.h"
 #include "BootloaderAPI.h"
 #include "Config/AppConfig.h"
+#include "Descriptors.h"
 
-#include <LUFA/Drivers/USB/USB.h>
 #include <LUFA/Drivers/Board/LEDs.h>
+#include <LUFA/Drivers/USB/USB.h>
 #include <LUFA/Platform/Platform.h>
 
 /* Preprocessor Checks: */
@@ -209,7 +209,6 @@ enum DFU_Status_t {
 
 /* Function Prototypes: */
 static void SetupHardware(void);
-static void ResetHardware(void);
 
 void EVENT_USB_Device_ControlRequest(void);
 

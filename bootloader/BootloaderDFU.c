@@ -150,17 +150,6 @@ static void SetupHardware(void) {
   USB_Init();
 }
 
-/** Resets all configured hardware required for the bootloader back to their
- * original states. */
-static void ResetHardware(void) {
-  /* Shut down the USB and other board hardware drivers */
-  USB_Disable();
-
-  /* Relocate the interrupt vector table back to the application section */
-  MCUCR = (1 << IVCE);
-  MCUCR = 0;
-}
-
 /** Event handler for the USB_ControlRequest event. This is used to catch and
  * process control requests sent to the device from the USB host before passing
  * along unhandled control requests to the library for processing internally.

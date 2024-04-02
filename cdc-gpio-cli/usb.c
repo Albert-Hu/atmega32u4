@@ -132,7 +132,7 @@ static const usb_descriptor_configuration_t PROGMEM configuration_descriptor = {
  * language ID table available at USB.org what languages the device supports for
  * its string descriptors.
  */
-const USB_Descriptor_String_t PROGMEM language_string =
+static const USB_Descriptor_String_t PROGMEM language_string =
     USB_STRING_DESCRIPTOR_ARRAY(LANGUAGE_ID_ENG);
 
 /** Manufacturer descriptor string. This is a Unicode string containing the
@@ -140,14 +140,14 @@ const USB_Descriptor_String_t PROGMEM language_string =
  * by the host when the appropriate string ID is requested, listed in the Device
  *  Descriptor.
  */
-const USB_Descriptor_String_t PROGMEM manufacturer_string =
+static const USB_Descriptor_String_t PROGMEM manufacturer_string =
     USB_STRING_DESCRIPTOR(L"LUFA Library");
 
 /** Product descriptor string. This is a Unicode string containing the product's
  * details in human readable form, and is read out upon request by the host when
  * the appropriate string ID is requested, listed in the Device Descriptor.
  */
-const USB_Descriptor_String_t PROGMEM product_string =
+static const USB_Descriptor_String_t PROGMEM product_string =
     USB_STRING_DESCRIPTOR(L"LUFA CDC Demo Application");
 
 static USB_ClassInfo_CDC_Device_t cdc_interface = {
@@ -221,6 +221,8 @@ void usb_init(void) {
   stdout = &usb_stdio_stream;
   stdin = &usb_stdio_stream;
 }
+
+void usb_disable(void) { USB_Disable(); }
 
 void usb_task(void) {
   CDC_Device_USBTask(&cdc_interface);
