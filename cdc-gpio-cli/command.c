@@ -9,16 +9,14 @@
 #include "version.h"
 
 typedef struct {
-  char *name;
-  uint8_t type;
-  uint8_t reg;
-} gpio_register_t;
+  const char *str;
+  gpio_register_t reg;
+} str2reg_t;
 
 typedef struct {
-  char *name;
-  uint8_t reg;
-  uint8_t bit;
-} gpio_pin_t;
+  const char *str;
+  gpio_pin_t pin;
+} str2pin_t;
 
 // declare the command functions
 static void process_help(mcucli_command_t *command, void *user_data, int argc,
@@ -67,45 +65,28 @@ static mcucli_command_t commands[] = {
 
 static size_t num_commands = sizeof(commands) / sizeof(mcucli_command_t);
 
-static gpio_register_t gpio_registers[] = {
-    {"MCUCR", GPIO_TYPE_MCUCR, 0},
-    {"DDRB", GPIO_TYPE_DDR, GPIO_REGISTER_B},
-    {"DDRC", GPIO_TYPE_DDR, GPIO_REGISTER_C},
-    {"DDRD", GPIO_TYPE_DDR, GPIO_REGISTER_D},
-    {"DDRE", GPIO_TYPE_DDR, GPIO_REGISTER_E},
-    {"DDRF", GPIO_TYPE_DDR, GPIO_REGISTER_F},
-    {"PORTB", GPIO_TYPE_PORT, GPIO_REGISTER_B},
-    {"PORTC", GPIO_TYPE_PORT, GPIO_REGISTER_C},
-    {"PORTD", GPIO_TYPE_PORT, GPIO_REGISTER_D},
-    {"PORTE", GPIO_TYPE_PORT, GPIO_REGISTER_E},
-    {"PORTF", GPIO_TYPE_PORT, GPIO_REGISTER_F},
-    {"PINB", GPIO_TYPE_PIN, GPIO_REGISTER_B},
-    {"PINC", GPIO_TYPE_PIN, GPIO_REGISTER_C},
-    {"PIND", GPIO_TYPE_PIN, GPIO_REGISTER_D},
-    {"PINE", GPIO_TYPE_PIN, GPIO_REGISTER_E},
-    {"PINF", GPIO_TYPE_PIN, GPIO_REGISTER_F},
+static str2reg_t str2reg[] = {
+    {"MCUCR", GPIO_MCUCR}, {"DDRB", GPIO_DDRB},   {"DDRC", GPIO_DDRC},
+    {"DDRD", GPIO_DDRD},   {"DDRE", GPIO_DDRE},   {"DDRF", GPIO_DDRF},
+    {"PORTB", GPIO_PORTB}, {"PORTC", GPIO_PORTC}, {"PORTD", GPIO_PORTD},
+    {"PORTE", GPIO_PORTE}, {"PORTF", GPIO_PORTF}, {"PINB", GPIO_PINB},
+    {"PINC", GPIO_PINC},   {"PIND", GPIO_PIND},   {"PINE", GPIO_PINE},
+    {"PINF", GPIO_PINF},
 };
 
-static size_t num_gpio_registers =
-    sizeof(gpio_registers) / sizeof(gpio_register_t);
+static size_t num_str2reg = sizeof(str2reg) / sizeof(str2reg_t);
 
-static gpio_pin_t gpio_pins[] = {
-    {"PB0", GPIO_REGISTER_B, PB0}, {"PB1", GPIO_REGISTER_B, PB1},
-    {"PB2", GPIO_REGISTER_B, PB2}, {"PB3", GPIO_REGISTER_B, PB3},
-    {"PB4", GPIO_REGISTER_B, PB4}, {"PB5", GPIO_REGISTER_B, PB5},
-    {"PB6", GPIO_REGISTER_B, PB6}, {"PB7", GPIO_REGISTER_B, PB7},
-    {"PC6", GPIO_REGISTER_C, PC6}, {"PC7", GPIO_REGISTER_C, PC7},
-    {"PD0", GPIO_REGISTER_D, PD0}, {"PD1", GPIO_REGISTER_D, PD1},
-    {"PD2", GPIO_REGISTER_D, PD2}, {"PD3", GPIO_REGISTER_D, PD3},
-    {"PD4", GPIO_REGISTER_D, PD4}, {"PD5", GPIO_REGISTER_D, PD5},
-    {"PD6", GPIO_REGISTER_D, PD6}, {"PD7", GPIO_REGISTER_D, PD7},
-    {"PE2", GPIO_REGISTER_E, PE2}, {"PE6", GPIO_REGISTER_E, PE6},
-    {"PF0", GPIO_REGISTER_F, PF0}, {"PF1", GPIO_REGISTER_F, PF1},
-    {"PF4", GPIO_REGISTER_F, PF4}, {"PF5", GPIO_REGISTER_F, PF5},
-    {"PF6", GPIO_REGISTER_F, PF6}, {"PF7", GPIO_REGISTER_F, PF7},
+static str2pin_t str2pin[] = {
+    {"PB0", GPIO_PB0}, {"PB1", GPIO_PB1}, {"PB2", GPIO_PB2}, {"PB3", GPIO_PB3},
+    {"PB4", GPIO_PB4}, {"PB5", GPIO_PB5}, {"PB6", GPIO_PB6}, {"PB7", GPIO_PB7},
+    {"PC6", GPIO_PC6}, {"PC7", GPIO_PC7}, {"PD0", GPIO_PD0}, {"PD1", GPIO_PD1},
+    {"PD2", GPIO_PD2}, {"PD3", GPIO_PD3}, {"PD4", GPIO_PD4}, {"PD5", GPIO_PD5},
+    {"PD6", GPIO_PD6}, {"PD7", GPIO_PD7}, {"PE2", GPIO_PE2}, {"PE6", GPIO_PE6},
+    {"PF0", GPIO_PF0}, {"PF1", GPIO_PF1}, {"PF4", GPIO_PF4}, {"PF5", GPIO_PF5},
+    {"PF6", GPIO_PF6}, {"PF7", GPIO_PF7},
 };
 
-static size_t num_gpio_pins = sizeof(gpio_pins) / sizeof(gpio_pin_t);
+static size_t num_str2pin = sizeof(str2pin) / sizeof(str2pin_t);
 
 static void to_uppercase(char *str) {
   for (size_t i = 0; str[i] != '\0'; i++) {
@@ -147,121 +128,78 @@ static uint8_t is_pin(const char *name) {
 }
 
 static void print_pin_status(const char *name) {
-  size_t pin = 0;
-
-  while (pin < num_gpio_pins && strcmp(name, gpio_pins[pin].name) != 0) {
-    pin++;
-  }
-
-  if (pin < num_gpio_pins) {
-    int16_t level = gpio_get_level(gpio_pins[pin].reg, gpio_pins[pin].bit);
-    int16_t direction =
-        gpio_get_direction(gpio_pins[pin].reg, gpio_pins[pin].bit);
-    if (level >= 0 && direction >= 0) {
-      printf("%s: %s, %s\r\n", gpio_pins[pin].name,
-             direction == GPIO_DIRECTION_IN ? "IN" : "OUT",
-             level ? "HIGH" : "LOW");
-    } else {
-      printf("Failed to read pin: %s\r\n", name);
+  for (size_t i = 0; i < num_str2pin; i++) {
+    if (strcmp(name, str2pin[i].str) == 0) {
+      int16_t direction = gpio_get_direction(str2pin[i].pin);
+      int16_t level = gpio_get_level(str2pin[i].pin);
+      if (direction < 0 || level < 0) {
+        printf("Failed to read pin %s\r\n", name);
+      } else {
+        printf("%s: %s, %s\r\n", name, direction ? "OUT" : "IN",
+               level ? "HIGH" : "LOW");
+      }
+      break;
     }
-  } else {
-    printf("Unknown pin: %s\r\n", name);
   }
 }
 
 static void set_pin_mode(const char *name, const char *mode) {
-  size_t pin = 0;
-
-  while (pin < num_gpio_pins && strcmp(name, gpio_pins[pin].name) != 0) {
-    pin++;
-  }
-
-  if (pin < num_gpio_pins) {
-    if (mode[0] == 'I' && mode[1] == 'N' && mode[2] == '\0') {
-      if (gpio_set_direction(gpio_pins[pin].reg, gpio_pins[pin].bit,
-                             GPIO_DIRECTION_IN) < 0) {
-        printf("Failed to set pin mode: %s\r\n", name);
+  for (size_t i = 0; i < num_str2pin; i++) {
+    if (strcmp(name, str2pin[i].str) == 0) {
+      if (mode[0] == 'I' && mode[1] == 'N' && mode[2] == '\0') {
+        if (gpio_set_direction(str2pin[i].pin, 0) < 0) {
+          printf("Failed to set pin %s to input mode\r\n", name);
+        }
+      } else {
+        if (gpio_set_direction(str2pin[i].pin, 1) < 0) {
+          printf("Failed to set pin %s to output mode\r\n", name);
+        }
       }
-    } else if (mode[0] == 'O' && mode[1] == 'U' && mode[2] == 'T' &&
-               mode[3] == '\0') {
-      if (gpio_set_direction(gpio_pins[pin].reg, gpio_pins[pin].bit,
-                             GPIO_DIRECTION_OUT) < 0) {
-        printf("Failed to set pin mode: %s\r\n", name);
-      }
-    } else {
-      printf("Invalid mode: %s\r\n", mode);
+      break;
     }
-  } else {
-    printf("Unknown pin: %s\r\n", name);
   }
 }
 
 static void set_pin_value(const char *name, const char *value) {
-  size_t pin = 0;
-
-  while (pin < num_gpio_pins && strcmp(name, gpio_pins[pin].name) != 0) {
-    pin++;
-  }
-
-  if (pin < num_gpio_pins) {
-    if (value[0] == '0' && value[1] == '\0') {
-      if (gpio_set_level(gpio_pins[pin].reg, gpio_pins[pin].bit, 0) < 0) {
-        printf("Failed to set pin value: %s\r\n", name);
+  for (size_t i = 0; i < num_str2pin; i++) {
+    if (strcmp(name, str2pin[i].str) == 0) {
+      if (gpio_set_level(str2pin[i].pin, (uint8_t)strtol(value, NULL, 0)) < 0) {
+        printf("Failed to set pin %s to %s\r\n", name, value);
       }
-    } else if (value[0] == '1' && value[1] == '\0') {
-      if (gpio_set_level(gpio_pins[pin].reg, gpio_pins[pin].bit, 1) < 0) {
-        printf("Failed to set pin value: %s\r\n", name);
-      }
-    } else {
-      printf("Invalid value: %s\r\n", value);
+      break;
     }
-  } else {
-    printf("Unknown pin: %s\r\n", name);
   }
 }
 
 static void print_register_value(const char *name) {
-  if (name[0] == 'A' && name[1] == 'L' && name[2] == 'L') {
-    for (size_t i = 0; i < num_gpio_registers; i++) {
-      print_register_value(gpio_registers[i].name);
+  if (name[0] == 'A' && name[1] == 'L' && name[2] == 'L' && name[3] == '\0') {
+    for (size_t i = 0; i < num_str2reg; i++) {
+      print_register_value(str2reg[i].str);
     }
   } else {
-    size_t reg = 0;
-
-    while (reg < num_gpio_registers &&
-           strcmp(name, gpio_registers[reg].name) != 0) {
-      reg++;
-    }
-
-    if (reg < num_gpio_registers) {
-      int16_t value =
-          gpio_read(gpio_registers[reg].reg, gpio_registers[reg].type);
-      if (value < 0) {
-        printf("Failed to read register: %s\r\n", name);
-      } else {
-        printf("%s: 0x%02X\r\n", gpio_registers[reg].name, ((int)value) & 0xFF);
+    for (size_t i = 0; i < num_str2reg; i++) {
+      if (strcmp(name, str2reg[i].str) == 0) {
+        int16_t value = gpio_read(str2reg[i].reg);
+        if (value < 0) {
+          printf("Failed to read register %s\r\n", name);
+        } else {
+          printf("%s: 0x%02X\r\n", name, ((int)value) & 0xFF);
+        }
+        break;
       }
-    } else {
-      printf("Unknown register: %s\r\n", name);
     }
   }
 }
 
 static void set_register_value(const char *name, uint8_t value) {
-  size_t reg = 0;
-
-  while (reg < num_gpio_registers &&
-         strcmp(name, gpio_registers[reg].name) != 0) {
-    reg++;
-  }
-
-  if (reg < num_gpio_registers) {
-    if (gpio_write(gpio_registers[reg].reg, gpio_registers[reg].type, value) <
-        0) {
-      printf("Failed to set register value: %s\r\n", name);
+  for (size_t i = 0; i < num_str2reg; i++) {
+    if (strcmp(name, str2reg[i].str) == 0) {
+      if (gpio_write(str2reg[i].reg, value) < 0) {
+        printf("Failed to write 0x%02X to register %s\r\n", ((int)value) & 0xFF,
+               name);
+      }
+      break;
     }
-  } else {
-    printf("Unknown register: %s\r\n", name);
   }
 }
 
