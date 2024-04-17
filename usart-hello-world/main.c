@@ -1,8 +1,6 @@
 #include <avr/interrupt.h>
-#include <avr/io.h>
 #include <avr/wdt.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #define UNUSED(x) (void)(x)
 
