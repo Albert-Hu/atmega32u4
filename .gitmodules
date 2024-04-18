@@ -1,6 +1,6 @@
 [submodule "lufa"]
-	path = lufa
+	path = libs/lufa
 	url = https://github.com/abcminiuser/lufa.git
-[submodule "libs/mcucli"]
+[submodule "mcucli"]
 	path = libs/mcucli
 	url = git@github.com:Albert-Hu/mcucli.git
