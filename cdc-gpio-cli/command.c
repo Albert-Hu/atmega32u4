@@ -8,6 +8,9 @@
 #include "usb.h"
 #include "version.h"
 
+#define LINE_BUFFER_SIZE 128
+#define ARGUMENT_BUFFER_SIZE 32
+
 typedef struct {
   const char *str;
   gpio_register_t reg;
@@ -19,16 +22,16 @@ typedef struct {
 } str2pin_t;
 
 // declare the command functions
-static void process_help(mcucli_command_t *command, void *user_data, int argc,
+static void process_help(mcucli_t *cli, void *user_data, int argc,
                          char *argv[]);
-static void process_gpio(mcucli_command_t *command, void *user_data, int argc,
+static void process_gpio(mcucli_t *cli, void *user_data, int argc,
                          char *argv[]);
-static void process_version(mcucli_command_t *command, void *user_data,
-                            int argc, char *argv[]);
-static void process_reboot(mcucli_command_t *command, void *user_data, int argc,
-                           char *argv[]);
-static void process_bootloader(mcucli_command_t *command, void *user_data,
-                               int argc, char *argv[]);
+static void process_version(mcucli_t *cli, void *user_data, int argc,
+                         char *argv[]);
+static void process_reboot(mcucli_t *cli, void *user_data, int argc,
+                         char *argv[]);
+static void process_bootloader(mcucli_t *cli, void *user_data, int argc,
+                         char *argv[]);
 
 static mcucli_command_t commands[] = {
     {"help", "Print this help message", process_help},
@@ -63,7 +66,14 @@ static mcucli_command_t commands[] = {
     {"bootloader", "Enter the bootloader", process_bootloader},
 };
 
-static size_t num_commands = sizeof(commands) / sizeof(mcucli_command_t);
+static mcucli_command_set_t command_set = {
+  .commands = commands,
+  .num_commands = sizeof(commands) / sizeof(mcucli_command_t),
+};
+
+static char line_buffer[LINE_BUFFER_SIZE];
+static char *argument_buffer[ARGUMENT_BUFFER_SIZE];
+static mcucli_buffer_t buffer = {line_buffer, LINE_BUFFER_SIZE, argument_buffer, ARGUMENT_BUFFER_SIZE};
 
 static str2reg_t str2reg[] = {
     {"MCUCR", GPIO_MCUCR}, {"DDRB", GPIO_DDRB},   {"DDRC", GPIO_DDRC},
@@ -96,16 +106,17 @@ static void to_uppercase(char *str) {
   }
 }
 
-static void unknown_command(void *user_data, const char *command) {
+static void unknown_command(mcucli_t *cli, void *user_data, const char *command) {
+  UNUSED(cli);
   UNUSED(user_data);
   printf("Unknown command: %s\r\n", command);
 }
 
-static void process_help(mcucli_command_t *command, void *user_data, int argc,
+static void process_help(mcucli_t *cli, void *user_data, int argc,
                          char *argv[]) {
-  for (size_t i = 0; i < num_commands; i++) {
-    printf("- %s\r\n", commands[i].name);
-    printf("%s\r\n\r\n", commands[i].help);
+  for (size_t i = 0; i < command_set.num_commands; i++) {
+    printf("- %s\r\n", command_set.commands[i].name);
+    printf("%s\r\n\r\n", command_set.commands[i].help);
   }
 }
 
@@ -203,14 +214,14 @@ static void set_register_value(const char *name, uint8_t value) {
   }
 }
 
-static void process_gpio(mcucli_command_t *command, void *user_data, int argc,
+static void process_gpio(mcucli_t *cli, void *user_data, int argc,
                          char *argv[]) {
   UNUSED(user_data);
 
   do {
     if (argc == 0 ||
         (argc == 1 && (strcmp(argv[0], "help") == 0 || argv[0][0] == '?'))) {
-      printf("%s\r\n", command->help);
+      printf("%s\r\n", command_set.commands[2].help);
       break;
     }
 
@@ -238,21 +249,21 @@ static void process_gpio(mcucli_command_t *command, void *user_data, int argc,
   } while (0);
 }
 
-static void process_version(mcucli_command_t *command, void *user_data,
-                            int argc, char *argv[]) {
+static void process_version(mcucli_t *cli, void *user_data, int argc,
+                         char *argv[]) {
   printf("Firmware version: %s\r\n", VERSION);
 }
 
-static void process_reboot(mcucli_command_t *command, void *user_data, int argc,
-                           char *argv[]) {
+static void process_reboot(mcucli_t *cli, void *user_data, int argc,
+                         char *argv[]) {
   // reboot the MCU
   wdt_enable(WDTO_15MS);
   for (;;)
     ;
 }
 
-static void process_bootloader(mcucli_command_t *command, void *user_data,
-                               int argc, char *argv[]) {
+static void process_bootloader(mcucli_t *cli, void *user_data, int argc,
+                         char *argv[]) {
   usb_disable();
 
   /* Relocate the interrupt vector table */
@@ -263,6 +274,6 @@ static void process_bootloader(mcucli_command_t *command, void *user_data,
   ((void (*)(void))0x7000)();
 }
 
-void command_init(mcucli_t *cli, byte_writer_t writer) {
-  mcucli_init(cli, commands, num_commands, writer, unknown_command, NULL);
+void command_init(mcucli_t *cli, bytes_write_t write) {
+  mcucli_init(cli, NULL, &buffer, &command_set, write, unknown_command);
 }

@@ -5,14 +5,17 @@
 #include "usb.h"
 #include "version.h"
 
+#define LINE_BUFFER_SIZE 128
+#define ARGUMENT_BUFFER_SIZE 32
+
 // declare the command functions
-static void command_help(mcucli_command_t *command, void *user_data, int argc,
+static void command_help(mcucli_t *cli, void *user_data, int argc,
                          char *argv[]);
-static void command_version(mcucli_command_t *command, void *user_data,
+static void command_version(mcucli_t *cli, void *user_data,
                             int argc, char *argv[]);
-static void command_reboot(mcucli_command_t *command, void *user_data, int argc,
+static void command_reboot(mcucli_t *cli, void *user_data, int argc,
                            char *argv[]);
-static void command_bootloader(mcucli_command_t *command, void *user_data,
+static void command_bootloader(mcucli_t *cli, void *user_data,
                                int argc, char *argv[]);
 
 static mcucli_command_t commands[] = {
@@ -23,27 +26,35 @@ static mcucli_command_t commands[] = {
     {"bootloader", "Enter the bootloader", command_bootloader},
 };
 
-static size_t num_commands = sizeof(commands) / sizeof(mcucli_command_t);
+static mcucli_command_set_t command_set = {
+  .commands = commands,
+  .num_commands = sizeof(commands) / sizeof(mcucli_command_t),
+};
 
-static void unknown_command(void *user_data, const char *command) {
+static char line_buffer[LINE_BUFFER_SIZE];
+static char *argument_buffer[ARGUMENT_BUFFER_SIZE];
+static mcucli_buffer_t buffer = {line_buffer, LINE_BUFFER_SIZE, argument_buffer, ARGUMENT_BUFFER_SIZE};
+
+static void unknown_command(mcucli_t *cli, void *user_data, const char *command) {
+  UNUSED(cli);
   UNUSED(user_data);
   printf("Unknown command: %s\r\n", command);
 }
 
-static void command_help(mcucli_command_t *command, void *user_data, int argc,
+static void command_help(mcucli_t *cli, void *user_data, int argc,
                          char *argv[]) {
-  for (size_t i = 0; i < num_commands; i++) {
-    printf("- %s\r\n", commands[i].name);
-    printf("%s\r\n\r\n", commands[i].help);
+  for (size_t i = 0; i < command_set.num_commands; i++) {
+    printf("- %s\r\n", command_set.commands[i].name);
+    printf("%s\r\n\r\n", command_set.commands[i].help);
   }
 }
 
-static void command_version(mcucli_command_t *command, void *user_data,
+static void command_version(mcucli_t *cli, void *user_data,
                             int argc, char *argv[]) {
   printf("Firmware version: %s\r\n", VERSION);
 }
 
-static void command_reboot(mcucli_command_t *command, void *user_data, int argc,
+static void command_reboot(mcucli_t *cli, void *user_data, int argc,
                            char *argv[]) {
   // reboot the MCU
   wdt_enable(WDTO_15MS);
@@ -51,7 +62,7 @@ static void command_reboot(mcucli_command_t *command, void *user_data, int argc,
     ;
 }
 
-static void command_bootloader(mcucli_command_t *command, void *user_data,
+static void command_bootloader(mcucli_t *cli, void *user_data,
                                int argc, char *argv[]) {
   usb_disable();
 
@@ -63,6 +74,6 @@ static void command_bootloader(mcucli_command_t *command, void *user_data,
   ((void (*)(void))0x7000)();
 }
 
-void command_init(mcucli_t *cli, byte_writer_t writer) {
-  mcucli_init(cli, commands, num_commands, writer, unknown_command, NULL);
+void command_init(mcucli_t *cli, bytes_write_t write) {
+  mcucli_init(cli, NULL, &buffer, &command_set, write, unknown_command);
 }

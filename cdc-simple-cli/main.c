@@ -8,10 +8,17 @@
 #include "command.h"
 #include "usb.h"
 
-static int usb_putchar(char c) { return (int)usb_write_byte(c); }
+static int usb_puts(const char *s, size_t len) {
+  for (size_t i = 0; i < len; i++) {
+    if (usb_write_byte(s[i]) != 0) {
+      return -1;
+    }
+  }
+  return len;
+}
 
 // initialize the hardware
-static void init_hardware(void) {
+static void hardware_init(void) {
   // disable watchdog if enabled by bootloader/fuses
   MCUSR &= ~(1 << WDRF);
   wdt_disable();
@@ -25,15 +32,15 @@ int main(void) {
   uint16_t value;
   mcucli_t usb_cli;
 
-  init_hardware();
+  hardware_init();
 
-  command_init(&usb_cli, usb_putchar);
+  command_init(&usb_cli, usb_puts);
 
   GlobalInterruptEnable();
 
   for (;;) {
     if ((value = usb_read_byte()) != -1) {
-      mcucli_push_char(&usb_cli, value);
+      mcucli_putc(&usb_cli, value);
     }
     usb_task();
   }

@@ -3,6 +3,6 @@
 
 #include "mcucli.h"
 
-void command_init(mcucli_t *cli, byte_writer_t writer);
+void command_init(mcucli_t *cli, bytes_write_t write);
 
 #endif // _COMMAND_H_

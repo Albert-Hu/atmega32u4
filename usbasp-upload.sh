@@ -6,12 +6,5 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-# Configuration for avrdude
-PROGRAMMER="usbasp"
-MCU="atmega32u4"
-
-# Firmware file
-FIRMWARE="$1"
-
 # Upload firmware using avrdude
-avrdude -c $PROGRAMMER -p $MCU -U flash:w:$FIRMWARE:r
+avrdude -c usbasp -p atmega32u4 -U flash:w:$1:r

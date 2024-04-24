@@ -1,13 +1,12 @@
 MCU = atmega32u4
-CC = avr-gcc
-OBJCOPY = avr-objcopy
 CFLAGS = -mmcu=$(MCU) -Wall
 BUILD = build
 
 build:
 	mkdir -p $(BUILD)
-	$(CC) $(CFLAGS) -o $(BUILD)/main.elf main.c
-	$(OBJCOPY) -O binary $(BUILD)/main.elf $(BUILD)/main.bin
+	avr-gcc $(CFLAGS) -o $(BUILD)/main.elf main.c
+	avr-objcopy -O binary $(BUILD)/main.elf $(BUILD)/main.bin
+	avr-size --mcu=$(MCU) --format=avr $(BUILD)/main.elf
 
 upload: build
 	@avrdude -c usbasp -p atmega32u4 -U flash:w:$(BUILD)/main.bin:r
